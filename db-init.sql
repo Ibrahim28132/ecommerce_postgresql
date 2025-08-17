@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS products (
     name VARCHAR(255) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     in_stock INTEGER DEFAULT 0,
-    category VARCHAR(100),
+    category_id INTEGER REFERENCES categories(id),
     description TEXT,
     rating DECIMAL(3,2) DEFAULT 0.0,
     product_image VARCHAR(255),
@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS products (
 CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
+    product_id INTEGER REFERENCES products(id),
+    quantity INTEGER NOT NULL,
     total_amount DECIMAL(10,2) NOT NULL,
     status VARCHAR(50) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -55,7 +57,8 @@ CREATE TABLE IF NOT EXISTS cart (
     user_id INTEGER REFERENCES users(id),
     product_id INTEGER REFERENCES products(id),
     quantity INTEGER NOT NULL DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, product_id)
 );
 
 -- Create the wishlist table
@@ -63,7 +66,8 @@ CREATE TABLE IF NOT EXISTS wishlist (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
     product_id INTEGER REFERENCES products(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, product_id)
 );
 
 -- Create the reviews table
@@ -73,5 +77,6 @@ CREATE TABLE IF NOT EXISTS reviews (
     product_id INTEGER REFERENCES products(id),
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
     comment TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, product_id)
 );

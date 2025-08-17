@@ -3,9 +3,22 @@ const pool = require('../db');
 exports.createOrder = async (req, res) => {
   const { product_id, quantity } = req.body;
   try {
+    // Get product price
+    const productResult = await pool.query(
+      'SELECT price FROM products WHERE id = $1',
+      [product_id]
+    );
+    
+    if (productResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    const price = productResult.rows[0].price;
+    const total_amount = price * quantity;
+    
     const order = await pool.query(
-      'INSERT INTO orders (user_id, product_id, quantity) VALUES ($1, $2, $3) RETURNING *',
-      [req.user.id, product_id, quantity]
+      'INSERT INTO orders (user_id, product_id, quantity, total_amount) VALUES ($1, $2, $3, $4) RETURNING *',
+      [req.user.id, product_id, quantity, total_amount]
     );
     res.status(201).json(order.rows[0]);
   } catch (err) {
@@ -35,12 +48,25 @@ exports.updateOrder = async (req, res) => {
   const { id } = req.params;
 
   try {
+    // Get product price
+    const productResult = await pool.query(
+      'SELECT price FROM products WHERE id = $1',
+      [product_id]
+    );
+    
+    if (productResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    const price = productResult.rows[0].price;
+    const total_amount = price * quantity;
+    
     const result = await pool.query(
       `UPDATE orders
-       SET product_id = $1, quantity = $2
-       WHERE id = $3 AND user_id = $4
+       SET product_id = $1, quantity = $2, total_amount = $3
+       WHERE id = $4 AND user_id = $5
        RETURNING *`,
-      [product_id, quantity, id, req.user.id]
+      [product_id, quantity, total_amount, id, req.user.id]
     );
 
     if (result.rows.length === 0) {
@@ -94,11 +120,25 @@ exports.placeOrderFromCart = async (req, res) => {
 
     // 2. Insert each cart item as an order
     for (const item of cartItems.rows) {
+      // Get product price
+      const productResult = await client.query(
+        'SELECT price FROM products WHERE id = $1',
+        [item.product_id]
+      );
+      
+      if (productResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: `Product with id ${item.product_id} not found` });
+      }
+      
+      const price = productResult.rows[0].price;
+      const total_amount = price * item.quantity;
+      
       const result = await client.query(
-        `INSERT INTO orders (user_id, product_id, quantity)
-         VALUES ($1, $2, $3)
+        `INSERT INTO orders (user_id, product_id, quantity, total_amount)
+         VALUES ($1, $2, $3, $4)
          RETURNING *`,
-        [req.user.id, item.product_id, item.quantity]
+        [req.user.id, item.product_id, item.quantity, total_amount]
       );
       orderItems.push(result.rows[0]);
     }
