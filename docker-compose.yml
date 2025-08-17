@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - PG_HOST=db
+      - PG_PORT=5432
+      - PG_USER=postgres
+      - PG_PASSWORD=Kisumu1996
+      - PG_DATABASE=ecommerce
+      - JWT_SECRET=super_secure_random_string_1234
+    depends_on:
+      - db
+    volumes:
+      - ./uploads:/app/uploads
+
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=Kisumu1996
+      - POSTGRES_DB=ecommerce
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db-init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  postgres_data:
